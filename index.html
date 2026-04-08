@@ -8,79 +8,31 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root {
-            --green: #00E676;
-            --bg: #05080a;
-            --card: #0f141a;
-            --input: #161d24;
-            --text-grey: #94a3b8;
-            --danger: #ff3b30;
-            --blue: #3182ce;
-        }
-
+        :root { --green: #00E676; --bg: #05080a; --card: #0f141a; --input: #161d24; --text-grey: #94a3b8; --danger: #ff3b30; --blue: #3182ce; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg); color: white; min-height: 100vh; overflow-x: hidden; }
+        body { background: var(--bg); color: white; min-height: 100vh; }
         .hidden { display: none !important; }
-
-        /* --- LOGIN PAGE --- */
-        #login-page {
-            height: 100vh; display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at center, #111, #05080a);
-        }
-        .login-box {
-            background: var(--card); padding: 40px; border-radius: 20px; width: 90%;
-            max-width: 400px; border: 1px solid rgba(0, 230, 118, 0.2); text-align: center;
-        }
-        .login-box h2 { color: var(--green); margin-bottom: 30px; letter-spacing: 2px; }
-        .login-box input {
-            width: 100%; padding: 15px; margin-bottom: 20px; background: var(--input);
-            border: 1px solid #222; border-radius: 12px; color: white; outline: none;
-        }
-        .login-box button {
-            width: 100%; padding: 15px; background: var(--green); border: none;
-            border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s;
-        }
-
-        /* --- ADMIN LAYOUT --- */
+        #login-page { height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #111, #05080a); }
+        .login-box { background: var(--card); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid rgba(0, 230, 118, 0.2); text-align: center; }
+        .login-box input { width: 100%; padding: 15px; margin-bottom: 20px; background: var(--input); border: 1px solid #222; border-radius: 12px; color: white; outline: none; }
+        .login-box button { width: 100%; padding: 15px; background: var(--green); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
         #admin-layout { display: flex; min-height: 100vh; }
-        
-        .sidebar {
-            width: 260px; background: #070a0d; border-right: 1px solid rgba(255,255,255,0.05);
-            padding: 20px; position: fixed; height: 100vh; z-index: 100;
-        }
-        .sidebar h2 { color: var(--green); margin-bottom: 40px; text-align: center; font-size: 22px; }
-        .nav-item {
-            padding: 15px; color: var(--text-grey); display: flex; align-items: center;
-            gap: 12px; border-radius: 12px; cursor: pointer; transition: 0.3s; margin-bottom: 8px;
-        }
-        .nav-item:hover, .nav-item.active { background: rgba(0, 230, 118, 0.1); color: var(--green); }
-
+        .sidebar { width: 260px; background: #070a0d; border-right: 1px solid rgba(255,255,255,0.05); padding: 20px; position: fixed; height: 100vh; }
+        .nav-item { padding: 15px; color: var(--text-grey); display: flex; align-items: center; gap: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 8px; }
+        .nav-item.active { background: rgba(0, 230, 118, 0.1); color: var(--green); }
         .main-content { margin-left: 260px; flex: 1; padding: 40px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        
         .panel { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
-        .panel-title { border-left: 4px solid var(--green); padding-left: 15px; margin-bottom: 25px; font-size: 18px; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .panel-title { border-left: 4px solid var(--green); padding-left: 15px; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; }
         th { text-align: left; color: var(--text-grey); padding: 15px; border-bottom: 1px solid #222; font-size: 13px; }
         td { padding: 15px; border-bottom: 1px solid #1a1a1a; font-size: 14px; }
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-card h4 { color: var(--text-grey); font-size: 11px; text-transform: uppercase; }
-        .stat-card p { font-size: 22px; font-weight: bold; color: var(--green); margin-top: 5px; }
-
         .form-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        input, select { background: var(--input); border: 1px solid #222; padding: 12px; border-radius: 10px; color: white; outline: none; font-size: 13px; }
+        input, select { background: var(--input); border: 1px solid #222; padding: 12px; border-radius: 10px; color: white; outline: none; }
         .btn-add { background: var(--green); color: black; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        
-        .btn-action { padding: 8px 12px; border-radius: 6px; border: none; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-del { background: var(--danger); color: white; }
-        
+        .btn-del { background: var(--danger); color: white; padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px; }
         .badge { padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
         .badge-personal { background: rgba(49, 130, 206, 0.1); color: var(--blue); }
         .badge-public { background: rgba(0, 230, 118, 0.1); color: var(--green); }
-        .chan-icon { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #222; }
     </style>
 </head>
 <body>
@@ -90,78 +42,64 @@
             <h2>MICKSTER ADMIN</h2>
             <input type="text" id="user-in" placeholder="Username">
             <input type="password" id="pass-in" placeholder="Password">
-            <button onclick="checkLogin()">INGIA DASHBOARD</button>
-            <p id="err-msg" style="color: var(--danger); font-size: 12px; margin-top: 15px;" class="hidden">Username au Password siyo sahihi!</p>
+            <button onclick="checkLogin()">INGIA</button>
         </div>
     </div>
 
     <div id="admin-layout" class="hidden">
         <div class="sidebar">
-            <h2>MICKSTER TV</h2>
+            <h2 style="color:var(--green); text-align:center; margin-bottom:40px;">MICKSTER TV</h2>
             <div class="nav-item active" onclick="showTab('dash', this)"><i class="fa-solid fa-chart-line"></i> Dashboard</div>
             <div class="nav-item" onclick="showTab('tokens', this)"><i class="fa-solid fa-key"></i> Token Manager</div>
-            <div class="nav-item" onclick="showTab('channels', this)"><i class="fa-solid fa-tv"></i> Vituo (Channels)</div>
-            <div class="nav-item" onclick="showTab('slides', this)"><i class="fa-solid fa-images"></i> Auto Slides</div>
-            <div class="nav-item" onclick="location.reload()" style="margin-top: 40px; color: var(--danger);"><i class="fa-solid fa-power-off"></i> Logout</div>
+            <div class="nav-item" onclick="showTab('users', this)"><i class="fa-solid fa-users"></i> Manage Users</div>
+            <div class="nav-item" onclick="showTab('channels', this)"><i class="fa-solid fa-tv"></i> Channels</div>
+            <div class="nav-item" onclick="showTab('slides', this)"><i class="fa-solid fa-images"></i> Slides</div>
         </div>
 
         <div class="main-content">
-            <div class="header">
-                <h1 id="tab-title">DASHBOARD</h1>
-                <div style="background: var(--card); padding: 10px 20px; border-radius: 10px; font-size: 14px;">Admin: <span style="color: var(--green);">Mickster19</span></div>
-            </div>
+            <h1 id="tab-title" style="margin-bottom:30px;">DASHBOARD</h1>
 
             <div id="tab-dash" class="tab-content">
-                <div class="stats-grid">
-                    <div class="stat-card"><h4>Vituo vya TV</h4><p id="stat-chan-count">0</p></div>
-                    <div class="stat-card"><h4>Token Active</h4><p id="stat-token-count">0</p></div>
-                    <div class="stat-card"><h4>Server Status</h4><p style="color:var(--green)">Online</p></div>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px;">
+                    <div class="panel"><h4>Channels</h4><p id="stat-chan-count" style="font-size:24px; color:var(--green)">0</p></div>
+                    <div class="panel"><h4>Tokens</h4><p id="stat-token-count" style="font-size:24px; color:var(--green)">0</p></div>
+                    <div class="panel"><h4>Total Users</h4><p id="stat-user-count" style="font-size:24px; color:var(--green)">0</p></div>
                 </div>
             </div>
 
             <div id="tab-tokens" class="tab-content hidden">
                 <div class="panel">
-                    <h3 class="panel-title">Tengeneza Token (Chagua Kifurushi)</h3>
-                    <div class="form-group" style="grid-template-columns: 1.5fr 1.5fr 1fr 1fr;">
-                        <select id="token-user-select">
-                            <option value="">-- Chagua Mteja --</option>
-                            <option value="Mickness Ahijo">Mickness Ahijo</option>
-                            <option value="Amos J.">Amos J.</option>
-                            <option value="Sarah M.">Sarah M.</option>
-                            <option value="Public User">Public (Wote)</option>
-                        </select>
-                        <select id="token-type">
-                            <option value="Personal">Aina: Personal</option>
-                            <option value="Public">Aina: Public</option>
-                        </select>
-                        <select id="token-days">
-                            <option value="3">Kifurushi: Siku 3</option>
-                            <option value="7">Kifurushi: Wiki 1</option>
-                            <option value="14">Kifurushi: Wiki 2</option>
-                            <option value="30">Kifurushi: Mwezi 1</option>
-                        </select>
-                        <button class="btn-add" onclick="generateToken()">TENGENEZA</button>
+                    <h3 class="panel-title">Tengeneza Token</h3>
+                    <div class="form-group" style="grid-template-columns: 1.5fr 1fr 1fr 1fr;">
+                        <input type="text" id="token-user-select" placeholder="Jina la Mteja">
+                        <select id="token-type"><option value="Personal">Personal</option><option value="Public">Public</option></select>
+                        <select id="token-days"><option value="3">3 Days</option><option value="7">1 Week</option><option value="30">1 Month</option></select>
+                        <button class="btn-add" onclick="generateToken()">GENERATE</button>
                     </div>
                     <table>
-                        <thead>
-                            <tr><th>Token Key</th><th>Aina</th><th>User</th><th>Itaisha Lini</th><th>Action</th></tr>
-                        </thead>
+                        <thead><tr><th>Key</th><th>Type</th><th>User</th><th>Expiry</th><th>Action</th></tr></thead>
                         <tbody id="token-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-users" class="tab-content hidden">
+                <div class="panel">
+                    <h3 class="panel-title">Registered Users</h3>
+                    <table>
+                        <thead><tr><th>Username / Phone</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="user-list-body"></tbody>
                     </table>
                 </div>
             </div>
 
             <div id="tab-channels" class="tab-content hidden">
                 <div class="panel">
-                    <h3 class="panel-title">Ongeza Channel Mpya</h3>
-                    <div class="form-group">
-                        <input type="text" id="chan-name" placeholder="Jina la Channel">
-                        <input type="text" id="chan-icon" placeholder="URL ya Icon (Picha)">
-                        <input type="text" id="chan-link" placeholder="Stream Link (M3U8)">
-                    </div>
-                    <button class="btn-add" onclick="saveChannel()">HIFADHI CHANNEL</button>
-                    <table>
-                        <thead><tr><th>Icon</th><th>Jina</th><th>Action</th></tr></thead>
+                    <h3 class="panel-title">Add Channel</h3>
+                    <div class="form-group"><input type="text" id="chan-name" placeholder="Name"><input type="text" id="chan-icon" placeholder="Icon URL"><input type="text" id="chan-link" placeholder="M3U8 Link"></div>
+                    <button class="btn-add" onclick="saveChannel()">SAVE</button>
+                    <table style="margin-top:20px;">
+                        <thead><tr><th>Icon</th><th>Name</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -169,14 +107,11 @@
 
             <div id="tab-slides" class="tab-content hidden">
                 <div class="panel">
-                    <h3 class="panel-title">Auto Slides (Home Screen)</h3>
-                    <div class="form-group" style="grid-template-columns: 1.5fr 1.5fr 1fr;">
-                        <input type="text" id="slide-url" placeholder="Weka URL ya Picha">
-                        <input type="text" id="slide-caption" placeholder="Maelezo (Caption)">
-                        <button class="btn-add" onclick="saveSlide()">HIFADHI SLIDE</button>
-                    </div>
-                    <table>
-                        <thead><tr><th>Picha</th><th>Maelezo</th><th>Action</th></tr></thead>
+                    <h3 class="panel-title">Home Slides</h3>
+                    <div class="form-group"><input type="text" id="slide-url" placeholder="Image URL"><input type="text" id="slide-caption" placeholder="Caption"></div>
+                    <button class="btn-add" onclick="saveSlide()">ADD SLIDE</button>
+                    <table style="margin-top:20px;">
+                        <thead><tr><th>Image</th><th>Caption</th><th>Action</th></tr></thead>
                         <tbody id="slide-list-body"></tbody>
                     </table>
                 </div>
@@ -185,25 +120,16 @@
     </div>
 
     <script>
-        // FIREBASE CONFIGURATION
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiNjWTVcqZYsiHDWyxvU35qoAakwhFZKk",
-            authDomain: "mickster-tv.firebaseapp.com",
-            databaseURL: "https://mickster-tv-default-rtdb.firebaseio.com",
-            projectId: "mickster-tv",
-            storageBucket: "mickster-tv.appspot.com",
-        };
+        const firebaseConfig = { apiKey: "AIzaSyDiNjWTVcqZYsiHDWyxvU35qoAakwhFZKk", databaseURL: "https://mickster-tv-default-rtdb.firebaseio.com" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         function checkLogin() {
-            const user = document.getElementById('user-in').value;
-            const pass = document.getElementById('pass-in').value;
-            if(user === "Mickster19" && pass === "$120") {
+            if(document.getElementById('user-in').value === "Mickster19" && document.getElementById('pass-in').value === "$120") {
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('admin-layout').classList.remove('hidden');
                 loadAllData();
-            } else { document.getElementById('err-msg').classList.remove('hidden'); }
+            }
         }
 
         function showTab(id, el) {
@@ -214,103 +140,62 @@
             document.getElementById('tab-title').innerText = id.toUpperCase();
         }
 
-        // --- TOKEN LOGIC ---
         function generateToken() {
-            const userSelect = document.getElementById('token-user-select').value;
+            const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
             const days = parseInt(document.getElementById('token-days').value);
-            
-            if (type === "Personal" && userSelect === "") {
-                alert("Tafadhali chagua mteja!");
-                return;
-            }
-
             const key = "MICK-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + days);
-            const expiryString = expiryDate.toLocaleDateString('en-GB');
-
-            db.ref('tokens').push({
-                key: key,
-                type: type,
-                user: type === 'Public' ? 'All Users' : userSelect,
-                expiry: expiryString
-            });
-            alert("Token Imetengenezwa: " + key);
+            const exp = new Date(); exp.setDate(exp.getDate() + days);
+            db.ref('tokens').push({ key, type, user, expiry: exp.toLocaleDateString('en-GB') });
         }
 
-        // --- CHANNELS LOGIC ---
         function saveChannel() {
             const name = document.getElementById('chan-name').value;
             const icon = document.getElementById('chan-icon').value;
             const link = document.getElementById('chan-link').value;
-            if(!name || !link) return alert("Jaza Jina na Link!");
-            db.ref('channels').push({name, icon, link});
-            document.getElementById('chan-name').value = "";
-            document.getElementById('chan-icon').value = "";
-            document.getElementById('chan-link').value = "";
+            if(name && link) db.ref('channels').push({name, icon, link});
         }
 
-        // --- SLIDES LOGIC ---
         function saveSlide() {
             const url = document.getElementById('slide-url').value;
             const cap = document.getElementById('slide-caption').value;
-            if(!url) return alert("Weka URL ya picha!");
-            db.ref('slides').push({url, cap});
-            document.getElementById('slide-url').value = "";
-            document.getElementById('slide-caption').value = "";
+            if(url) db.ref('slides').push({url, cap});
         }
 
-        // --- LOAD DATA REALTIME FROM FIREBASE ---
         function loadAllData() {
             // Load Tokens
             db.ref('tokens').on('value', snap => {
-                const body = document.getElementById('token-list-body');
-                body.innerHTML = "";
+                const body = document.getElementById('token-list-body'); body.innerHTML = "";
                 let count = 0;
-                snap.forEach(child => {
-                    count++;
-                    const t = child.val();
-                    body.innerHTML += `<tr>
-                        <td style="color:var(--green); font-family:monospace; font-weight:bold;">${t.key}</td>
-                        <td><span class="badge ${t.type === 'Public' ? 'badge-public' : 'badge-personal'}">${t.type}</span></td>
-                        <td>${t.user}</td>
-                        <td style="color:var(--danger)">${t.expiry}</td>
-                        <td><button class="btn-action btn-del" onclick="db.ref('tokens/${child.key}').remove()">Futa</button></td>
-                    </tr>`;
+                snap.forEach(c => {
+                    count++; const t = c.val();
+                    body.innerHTML += `<tr><td>${t.key}</td><td><span class="badge ${t.type==='Public'?'badge-public':'badge-personal'}">${t.type}</span></td><td>${t.user}</td><td>${t.expiry}</td><td><button class="btn-del" onclick="db.ref('tokens/${c.key}').remove()">Futa</button></td></tr>`;
                 });
                 document.getElementById('stat-token-count').innerText = count;
             });
 
-            // Load Channels
-            db.ref('channels').on('value', snap => {
-                const body = document.getElementById('channel-list-body');
-                body.innerHTML = "";
+            // Load Users (Imerudishwa)
+            db.ref('users').on('value', snap => {
+                const body = document.getElementById('user-list-body'); body.innerHTML = "";
                 let count = 0;
-                snap.forEach(child => {
-                    count++;
-                    const c = child.val();
-                    body.innerHTML += `<tr>
-                        <td><img src="${c.icon || 'https://via.placeholder.com/35'}" class="chan-icon"></td>
-                        <td><b>${c.name}</b></td>
-                        <td><button class="btn-action btn-del" onclick="db.ref('channels/${child.key}').remove()">Futa</button></td>
-                    </tr>`;
+                snap.forEach(c => {
+                    count++; const u = c.val();
+                    body.innerHTML += `<tr><td><b>${u.phone || 'Unknown'}</b></td><td><span style="color:var(--green)">Active</span></td><td><button class="btn-del" onclick="db.ref('users/${c.key}').remove()">Futa</button></td></tr>`;
                 });
+                document.getElementById('stat-user-count').innerText = count;
+            });
+
+            // Load Channels & Slides
+            db.ref('channels').on('value', snap => {
+                const body = document.getElementById('channel-list-body'); body.innerHTML = "";
+                let count = 0;
+                snap.forEach(c => { count++; const v = c.val(); body.innerHTML += `<tr><td><img src="${v.icon}" width="30"></td><td>${v.name}</td><td><button class="btn-del" onclick="db.ref('channels/${c.key}').remove()">Futa</button></td></tr>`; });
                 document.getElementById('stat-chan-count').innerText = count;
             });
 
-            // Load Slides
             db.ref('slides').on('value', snap => {
-                const body = document.getElementById('slide-list-body');
-                body.innerHTML = "";
-                snap.forEach(child => {
-                    const s = child.val();
-                    body.innerHTML += `<tr>
-                        <td><img src="${s.url}" style="height:30px; border-radius:4px"></td>
-                        <td>${s.cap}</td>
-                        <td><button class="btn-action btn-del" onclick="db.ref('slides/${child.key}').remove()">Futa</button></td>
-                    </tr>`;
-                });
+                const body = document.getElementById('slide-list-body'); body.innerHTML = "";
+                snap.forEach(c => { const v = c.val(); body.innerHTML += `<tr><td><img src="${v.url}" height="30"></td><td>${v.cap}</td><td><button class="btn-del" onclick="db.ref('slides/${c.key}').remove()">Futa</button></td></tr>`; });
             });
         }
     </script>

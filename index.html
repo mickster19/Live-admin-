@@ -198,7 +198,6 @@
     </div>
 
     <script>
-        // --- SUPABASE CONFIG ---
         const SUPABASE_URL = 'https://vcioivanuhqqucipdoge.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_BJXwjHQLipzLDk3vgki8TQ_3PiiOjl2'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -209,10 +208,9 @@
             document.getElementById('tab-' + id).classList.remove('hidden');
             el.classList.add('active');
             document.getElementById('tab-title').innerText = id.charAt(0).toUpperCase() + id.slice(1) + " Management";
-            loadAllData(); // Reload stats when switching tabs
+            loadAllData();
         }
 
-        // --- SAVE CHANNEL ---
         async function saveChannel() {
             const channel_name = document.getElementById('chan-name').value;
             const icon_url = document.getElementById('chan-icon').value;
@@ -226,9 +224,8 @@
                 category: "General"
             }]);
 
-            if(error) {
-                alert("Kosa: " + error.message);
-            } else {
+            if(error) alert("Kosa: " + error.message);
+            else {
                 alert("Channel Imekubali!");
                 document.getElementById('chan-name').value = "";
                 document.getElementById('chan-icon').value = "";
@@ -237,7 +234,6 @@
             }
         }
 
-        // --- GENERATE TOKEN ---
         async function generateToken() {
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
@@ -247,12 +243,11 @@
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             
-            // MAREKEBISHO HAPA: Majina ya columns yalingane na picha yako (expiry_date & customer_name)
             const { error } = await _supabase.from('tokens').insert([{ 
                 key: key, 
                 type: type, 
                 customer_name: user, 
-                expiry_date: exp.toISOString(), // Full timestamp kwa ajili ya expiry
+                expiry_date: exp.toISOString(), 
                 status: "active"
             }]);
 
@@ -263,7 +258,6 @@
             }
         }
 
-        // --- SAVE SLIDE ---
         async function saveSlide() {
             const url = document.getElementById('slide-url').value;
             const caption = document.getElementById('slide-cap').value;
@@ -285,9 +279,7 @@
             }
         }
 
-        // --- DATA LOAD ---
         async function loadAllData() {
-            // 1. Load Channels
             const { data: channels } = await _supabase.from('channels').select('*');
             if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
@@ -302,17 +294,24 @@
                 document.getElementById('stat-chan-count').innerText = channels.length;
             }
 
-            // 2. Load Tokens
             const { data: tokens } = await _supabase.from('tokens').select('*');
             if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
                 tokens.forEach(t => {
                     const dStatus = (t.type === "Personal") ? (t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:var(--primary)">Available</span>') : "Public";
+                    
+                    // MAREKEBISHO YA MUDA HAPA:
+                    let formattedDate = 'No Date';
+                    if(t.expiry_date) {
+                        const dateObj = new Date(t.expiry_date);
+                        formattedDate = dateObj.toLocaleDateString('en-GB') + ' ' + dateObj.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+                    }
+
                     body.innerHTML += `<tr>
                         <td><code style="color:var(--primary)">${t.key}</code></td>
                         <td>${t.customer_name || 'N/A'}</td>
                         <td>${t.type}</td>
-                        <td>${t.expiry_date ? new Date(t.expiry_date).toLocaleDateString() : 'No Date'}</td>
+                        <td>${formattedDate}</td>
                         <td>${dStatus}</td>
                         <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>
                     </tr>`;
@@ -320,11 +319,7 @@
                 document.getElementById('stat-token-count').innerText = tokens.length;
             }
 
-            // 3. Load Users (KUTOKA TABLE YA PROFILES)
-            const { data: profiles, count } = await _supabase
-                .from('profiles')
-                .select('*', { count: 'exact' });
-                
+            const { data: profiles, count } = await _supabase.from('profiles').select('*', { count: 'exact' });
             if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
                 profiles.forEach(u => {
@@ -337,7 +332,6 @@
                 document.getElementById('stat-user-count').innerText = count || profiles.length;
             }
 
-            // 4. Load Slides
             const { data: slides } = await _supabase.from('slides').select('*');
             if(slides) {
                 const body = document.getElementById('slide-list-body'); body.innerHTML = "";

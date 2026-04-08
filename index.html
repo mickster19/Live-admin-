@@ -209,6 +209,7 @@
             document.getElementById('tab-' + id).classList.remove('hidden');
             el.classList.add('active');
             document.getElementById('tab-title').innerText = id.charAt(0).toUpperCase() + id.slice(1) + " Management";
+            loadAllData(); // Reload stats when switching tabs
         }
 
         // --- SAVE CHANNEL ---
@@ -227,7 +228,6 @@
 
             if(error) {
                 alert("Kosa: " + error.message);
-                console.error(error);
             } else {
                 alert("Channel Imekubali!");
                 document.getElementById('chan-name').value = "";
@@ -247,11 +247,12 @@
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             
+            // MAREKEBISHO HAPA: Majina ya columns yalingane na picha yako (expiry_date & customer_name)
             const { error } = await _supabase.from('tokens').insert([{ 
                 key: key, 
                 type: type, 
                 customer_name: user, 
-                expiry_date: exp.toISOString().split('T')[0],
+                expiry_date: exp.toISOString(), // Full timestamp kwa ajili ya expiry
                 status: "active"
             }]);
 
@@ -309,9 +310,9 @@
                     const dStatus = (t.type === "Personal") ? (t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:var(--primary)">Available</span>') : "Public";
                     body.innerHTML += `<tr>
                         <td><code style="color:var(--primary)">${t.key}</code></td>
-                        <td>${t.customer_name}</td>
+                        <td>${t.customer_name || 'N/A'}</td>
                         <td>${t.type}</td>
-                        <td>${t.expiry_date}</td>
+                        <td>${t.expiry_date ? new Date(t.expiry_date).toLocaleDateString() : 'No Date'}</td>
                         <td>${dStatus}</td>
                         <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>
                     </tr>`;
@@ -319,8 +320,11 @@
                 document.getElementById('stat-token-count').innerText = tokens.length;
             }
 
-            // 3. Load Users (Profiles)
-            const { data: profiles } = await _supabase.from('profiles').select('*');
+            // 3. Load Users (KUTOKA TABLE YA PROFILES)
+            const { data: profiles, count } = await _supabase
+                .from('profiles')
+                .select('*', { count: 'exact' });
+                
             if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
                 profiles.forEach(u => {
@@ -330,7 +334,7 @@
                         <td><button class="action-btn" onclick="deleteItem('profiles', ${u.id})">Delete</button></td>
                     </tr>`;
                 });
-                document.getElementById('stat-user-count').innerText = profiles.length;
+                document.getElementById('stat-user-count').innerText = count || profiles.length;
             }
 
             // 4. Load Slides

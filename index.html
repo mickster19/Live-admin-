@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MICKSTER TV | Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --green: #00E676;
+            --bg: #05080a;
+            --card: #0f141a;
+            --input: #161d24;
+            --text-grey: #94a3b8;
+            --danger: #ff3b30;
+            --blue: #3182ce;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: white; min-height: 100vh; overflow-x: hidden; }
+        .hidden { display: none !important; }
+
+        /* --- LOGIN PAGE --- */
+        #login-page {
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #111, #05080a);
+        }
+        .login-box {
+            background: var(--card); padding: 40px; border-radius: 20px; width: 90%;
+            max-width: 400px; border: 1px solid rgba(0, 230, 118, 0.2); text-align: center;
+        }
+        .login-box h2 { color: var(--green); margin-bottom: 30px; letter-spacing: 2px; }
+        .login-box input {
+            width: 100%; padding: 15px; margin-bottom: 20px; background: var(--input);
+            border: 1px solid #222; border-radius: 12px; color: white; outline: none;
+        }
+        .login-box button {
+            width: 100%; padding: 15px; background: var(--green); border: none;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+
+        /* --- ADMIN LAYOUT --- */
+        #admin-layout { display: flex; min-height: 100vh; }
+        
+        .sidebar {
+            width: 260px; background: #070a0d; border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 20px; position: fixed; height: 100vh; z-index: 100;
+        }
+        .sidebar h2 { color: var(--green); margin-bottom: 40px; text-align: center; font-size: 22px; }
+        .nav-item {
+            padding: 15px; color: var(--text-grey); display: flex; align-items: center;
+            gap: 12px; border-radius: 12px; cursor: pointer; transition: 0.3s; margin-bottom: 8px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(0, 230, 118, 0.1); color: var(--green); }
+
+        .main-content { margin-left: 260px; flex: 1; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        
+        .panel { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
+        .panel-title { border-left: 4px solid var(--green); padding-left: 15px; margin-bottom: 25px; font-size: 18px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--text-grey); padding: 15px; border-bottom: 1px solid #222; font-size: 13px; }
+        td { padding: 15px; border-bottom: 1px solid #1a1a1a; font-size: 14px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-card h4 { color: var(--text-grey); font-size: 11px; text-transform: uppercase; }
+        .stat-card p { font-size: 22px; font-weight: bold; color: var(--green); margin-top: 5px; }
+
+        .form-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        input, select { background: var(--input); border: 1px solid #222; padding: 12px; border-radius: 10px; color: white; outline: none; font-size: 13px; }
+        .btn-add { background: var(--green); color: black; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        
+        .btn-action { padding: 8px 12px; border-radius: 6px; border: none; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-edit { background: var(--blue); color: white; margin-right: 5px; }
+        .btn-del { background: var(--danger); color: white; }
+        
+        .chan-icon { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #222; }
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
+        .badge-personal { background: rgba(49, 130, 206, 0.1); color: var(--blue); }
+        .badge-public { background: rgba(0, 230, 118, 0.1); color: var(--green); }
+        .user-expired { color: var(--danger); font-weight: bold; }
+        .user-active { color: var(--green); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+        <div class="login-box">
+            <h2>MICKSTER ADMIN</h2>
+            <input type="text" id="user-in" placeholder="Username">
+            <input type="password" id="pass-in" placeholder="Password">
+            <button onclick="checkLogin()">INGIA DASHBOARD</button>
+            <p id="err-msg" style="color: var(--danger); font-size: 12px; margin-top: 15px;" class="hidden">Username au Password siyo sahihi!</p>
+        </div>
+    </div>
+
+    <div id="admin-layout" class="hidden">
+        <div class="sidebar">
+            <h2>MICKSTER TV</h2>
+            <div class="nav-item active" onclick="showTab('dash', this)"><i class="fa-solid fa-chart-line"></i> Dashboard</div>
+            <div class="nav-item" onclick="showTab('tokens', this)"><i class="fa-solid fa-key"></i> Token Manager</div>
+            <div class="nav-item" onclick="showTab('channels', this)"><i class="fa-solid fa-tv"></i> Vituo (Channels)</div>
+            <div class="nav-item" onclick="showTab('slides', this)"><i class="fa-solid fa-images"></i> Auto Slides</div>
+            <div class="nav-item" onclick="showTab('users', this)"><i class="fa-solid fa-users-gear"></i> Wateja (Users)</div>
+            <div class="nav-item" onclick="location.reload()" style="margin-top: 40px; color: var(--danger);"><i class="fa-solid fa-power-off"></i> Logout</div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1 id="tab-title">Dashboard</h1>
+                <div style="background: var(--card); padding: 10px 20px; border-radius: 10px; font-size: 14px;">
+                    Admin: <span style="color: var(--green);">Mickster19</span>
+                </div>
+            </div>
+
+            <div id="tab-dash" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card"><h4>Vituo vya TV</h4><p id="stat-chan-count">0</p></div>
+                    <div class="stat-card"><h4>Token Active</h4><p id="stat-token-count">0</p></div>
+                    <div class="stat-card"><h4>Wateja</h4><p id="stat-user-count">1</p></div>
+                    <div class="stat-card"><h4>Server</h4><p style="color:var(--green)">Online</p></div>
+                </div>
+            </div>
+
+            <div id="tab-tokens" class="tab-content hidden">
+                <div class="panel">
+                    <h3 class="panel-title">Tengeneza Token (Chagua Kifurushi)</h3>
+                    <div class="form-group" style="grid-template-columns: 1.5fr 1.5fr 1fr 1fr;">
+                        <select id="token-user-select">
+                            <option value="">-- Chagua Mteja --</option>
+                            <option value="Mickness Ahijo">Mickness Ahijo</option>
+                            <option value="Amos J.">Amos J.</option>
+                            <option value="Sarah M.">Sarah M.</option>
+                            <option value="Public User">Public (Wote)</option>
+                        </select>
+                        <select id="token-type">
+                            <option value="Personal">Aina: Personal</option>
+                            <option value="Public">Aina: Public</option>
+                        </select>
+                        <select id="token-days">
+                            <option value="3">Kifurushi: Siku 3</option>
+                            <option value="7">Kifurushi: Wiki 1</option>
+                            <option value="14">Kifurushi: Wiki 2</option>
+                            <option value="30">Kifurushi: Mwezi 1</option>
+                        </select>
+                        <button class="btn-add" onclick="generateToken()">TENGENEZA</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>Token Key</th><th>Aina</th><th>Mteja/User</th><th>Itaisha Lini</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="token-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-channels" class="tab-content hidden">
+                <div class="panel">
+                    <h3 class="panel-title" id="chan-form-title">Ongeza Channel</h3>
+                    <input type="hidden" id="edit-index-chan">
+                    <div class="form-group">
+                        <input type="text" id="chan-name" placeholder="Jina la Channel">
+                        <input type="text" id="chan-icon" placeholder="URL ya Icon">
+                        <input type="text" id="chan-link" placeholder="Stream Link (M3U8)">
+                    </div>
+                    <button class="btn-add" id="btn-save-chan" onclick="saveChannel()">HIFADHI CHANNEL</button>
+                    <table>
+                        <thead>
+                            <tr><th>Icon</th><th>Jina</th><th>Link</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="channel-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-slides" class="tab-content hidden">
+                <div class="panel">
+                    <h3 class="panel-title" id="slide-form-title">Ongeza Picha ya Slide</h3>
+                    <div class="form-group" style="grid-template-columns: 1.5fr 1.5fr 1fr;">
+                        <input type="text" id="slide-url" placeholder="Weka URL ya Picha">
+                        <input type="text" id="slide-caption" placeholder="Maelezo (Caption)">
+                        <button class="btn-add" onclick="saveSlide()">HIFADHI SLIDE</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>Picha</th><th>Maelezo</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="slide-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-users" class="tab-content hidden">
+                <div class="panel">
+                    <h3 class="panel-title">Usimamizi wa Wateja</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mteja</th><th>Namba</th><th>Hali</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="user-list-body">
+                            <tr>
+                                <td>Mickness Ahijo</td>
+                                <td>0791139331</td>
+                                <td><span class="user-expired">Expired</span></td>
+                                <td>
+                                    <button class="btn-action btn-edit">Edit</button>
+                                    <button class="btn-action btn-del" onclick="deleteUser(this)">Futa Mteja</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let channels = [];
+        let slides = [];
+        let tokensCount = 0;
+        let usersCount = 1;
+
+        function checkLogin() {
+            const user = document.getElementById('user-in').value;
+            const pass = document.getElementById('pass-in').value;
+            if(user === "Mickster19" && pass === "$120") {
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('admin-layout').classList.remove('hidden');
+            } else { document.getElementById('err-msg').classList.remove('hidden'); }
+        }
+
+        function showTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.remove('hidden');
+            el.classList.add('active');
+            document.getElementById('tab-title').innerText = id.toUpperCase();
+        }
+
+        // --- TOKEN LOGIC ---
+        function generateToken() {
+            const userSelect = document.getElementById('token-user-select').value;
+            const type = document.getElementById('token-type').value;
+            const days = parseInt(document.getElementById('token-days').value);
+            
+            if (type === "Personal" && userSelect === "") {
+                alert("Tafadhali chagua mteja!");
+                return;
+            }
+
+            const key = "MICK-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+            const expiry = new Date();
+            expiry.setDate(expiry.getDate() + days);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="color:var(--green); font-family:monospace;">${key}</td>
+                <td><span class="badge ${type === 'Public' ? 'badge-public' : 'badge-personal'}">${type}</span></td>
+                <td>${type === 'Public' ? 'All Users' : userSelect}</td>
+                <td style="color:var(--danger)">${expiry.toLocaleDateString('en-GB')}</td>
+                <td><button class="btn-action btn-del" onclick="this.parentElement.parentElement.remove(); updateTokenStat(-1)">Futa</button></td>
+            `;
+            document.getElementById('token-list-body').prepend(row);
+            updateTokenStat(1);
+            document.getElementById('token-user-select').value = "";
+        }
+
+        function updateTokenStat(val) { tokensCount += val; document.getElementById('stat-token-count').innerText = tokensCount; }
+
+        // --- USERS LOGIC ---
+        function deleteUser(btn) {
+            if(confirm("Je, una uhakika unataka kumfuta mteja huyu kabisa?")) {
+                btn.parentElement.parentElement.remove();
+                usersCount--;
+                document.getElementById('stat-user-count').innerText = usersCount;
+            }
+        }
+
+        // --- CHANNELS LOGIC ---
+        function saveChannel() {
+            const name = document.getElementById('chan-name').value;
+            const icon = document.getElementById('chan-icon').value;
+            const link = document.getElementById('chan-link').value;
+            const editIdx = document.getElementById('edit-index-chan').value;
+            if(!name || !link) return alert("Jaza jina na link!");
+            if(editIdx === "") { channels.push({name, icon, link}); } 
+            else { channels[editIdx] = {name, icon, link}; document.getElementById('edit-index-chan').value = ""; document.getElementById('btn-save-chan').innerText = "HIFADHI CHANNEL"; }
+            clearChanInputs(); renderChannels();
+        }
+
+        function renderChannels() {
+            const body = document.getElementById('channel-list-body');
+            body.innerHTML = "";
+            channels.forEach((c, i) => {
+                body.innerHTML += `<tr><td><img src="${c.icon || 'https://via.placeholder.com/35'}" class="chan-icon"></td><td><b>${c.name}</b></td><td>${c.link.substr(0,20)}...</td><td><button class="btn-action btn-edit" onclick="editChan(${i})">Edit</button><button class="btn-action btn-del" onclick="delChan(${i})">Futa</button></td></tr>`;
+            });
+            document.getElementById('stat-chan-count').innerText = channels.length;
+        }
+
+        function editChan(i) {
+            const c = channels[i];
+            document.getElementById('chan-name').value = c.name; document.getElementById('chan-icon').value = c.icon; document.getElementById('chan-link').value = c.link;
+            document.getElementById('edit-index-chan').value = i; document.getElementById('btn-save-chan').innerText = "UPDATE";
+        }
+        function delChan(i) { channels.splice(i, 1); renderChannels(); }
+        function clearChanInputs() { document.getElementById('chan-name').value = ""; document.getElementById('chan-icon').value = ""; document.getElementById('chan-link').value = ""; }
+
+        // --- SLIDES LOGIC ---
+        function saveSlide() {
+            const url = document.getElementById('slide-url').value;
+            const cap = document.getElementById('slide-caption').value;
+            if(!url) return alert("Weka picha URL!");
+            slides.push({url, cap});
+            document.getElementById('slide-url').value = ""; document.getElementById('slide-caption').value = "";
+            renderSlides();
+        }
+
+        function renderSlides() {
+            const body = document.getElementById('slide-list-body');
+            body.innerHTML = "";
+            slides.forEach((s, i) => {
+                body.innerHTML += `<tr><td><img src="${s.url}" style="height:30px; border-radius:4px"></td><td>${s.cap}</td><td><button class="btn-action btn-del" onclick="slides.splice(${i},1); renderSlides()">Futa</button></td></tr>`;
+            });
+        }
+
+        document.getElementById('pass-in').addEventListener('keypress', (e) => { if(e.key === 'Enter') checkLogin(); });
+    </script>
+</body>
+</html>

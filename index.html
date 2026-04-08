@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MICKSTER TV | Admin Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --primary: #00E676;
@@ -63,7 +64,7 @@
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         input, select {
             background: #0d1117; border: 1px solid #30363d; padding: 12px 15px; border-radius: 10px;
-            color: white; outline: none; transition: 0.3s;
+            color: white; outline: none; transition: 0.3s; width: 100%;
         }
         input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1); }
 
@@ -80,7 +81,6 @@
         .action-btn { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         .action-btn:hover { opacity: 0.8; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .sidebar { width: 70px; }
             .sidebar h2, .nav-item span { display: none; }
@@ -105,7 +105,7 @@
     <div class="main-content">
         <header>
             <h1 id="tab-title">Dashboard Overview</h1>
-            <div style="color: var(--text-dim); font-size: 14px;"><i class="fa-solid fa-circle" style="color:var(--primary); font-size:10px;"></i> System Online</div>
+            <div style="color: var(--text-dim); font-size: 14px;"><i class="fa-solid fa-circle" style="color:var(--primary); font-size:10px;"></i> Supabase Live</div>
         </header>
 
         <div id="tab-dash" class="tab-content">
@@ -169,7 +169,7 @@
                 <div class="panel-header"><h2>Registered Users</h2></div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Phone Number</th><th>Registered Date</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Phone Number</th><th>User Name</th><th>Action</th></tr></thead>
                         <tbody id="user-list-body"></tbody>
                     </table>
                 </div>
@@ -198,13 +198,10 @@
     </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = { 
-            apiKey: "AIzaSyDiNjWTVcqZYsiHDWyxvU35qoAakwhFZKk", 
-            databaseURL: "https://mickster-tv-default-rtdb.firebaseio.com" 
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = 'https://vcioivanuhqqucipdoge.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_BJXwjHQLipzLDk3vgki8TQ_3PiiOjl2'; 
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function showTab(id, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
@@ -215,22 +212,33 @@
         }
 
         // --- SAVE CHANNEL ---
-        function saveChannel() {
-            const name = document.getElementById('chan-name').value;
-            const icon = document.getElementById('chan-icon').value;
-            const link = document.getElementById('chan-link').value;
-            if(!name || !link) { alert("Jaza Jina na Link!"); return; }
+        async function saveChannel() {
+            const channel_name = document.getElementById('chan-name').value;
+            const icon_url = document.getElementById('chan-icon').value;
+            const stream_url = document.getElementById('chan-link').value;
+            if(!channel_name || !stream_url) { alert("Jaza Jina na Link!"); return; }
 
-            db.ref('channels').push({ name, icon, link }).then(() => {
+            const { error } = await _supabase.from('channels').insert([{ 
+                channel_name: channel_name, 
+                icon_url: icon_url, 
+                stream_url: stream_url,
+                category: "General"
+            }]);
+
+            if(error) {
+                alert("Kosa: " + error.message);
+                console.error(error);
+            } else {
+                alert("Channel Imekubali!");
                 document.getElementById('chan-name').value = "";
                 document.getElementById('chan-icon').value = "";
                 document.getElementById('chan-link').value = "";
-                alert("Channel Added!");
-            });
+                loadAllData();
+            }
         }
 
-        // --- GENERATE TOKEN (With Anti-Share Logic) ---
-        function generateToken() {
+        // --- GENERATE TOKEN ---
+        async function generateToken() {
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
             const days = parseInt(document.getElementById('token-days').value);
@@ -239,93 +247,107 @@
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             
-            db.ref('tokens').push({ 
+            const { error } = await _supabase.from('tokens').insert([{ 
                 key: key, 
                 type: type, 
-                user: user, 
-                expiry: exp.toLocaleDateString('en-GB'),
-                deviceId: "", 
+                customer_name: user, 
+                expiry_date: exp.toISOString().split('T')[0],
                 status: "active"
-            }).then(() => {
-                alert("Token Imetengenezwa: " + key);
-                document.getElementById('token-user-select').value = "";
-            });
+            }]);
+
+            if(error) alert("Kosa la Token: " + error.message);
+            else {
+                alert("Token Generated: " + key);
+                loadAllData();
+            }
         }
 
         // --- SAVE SLIDE ---
-        function saveSlide() {
+        async function saveSlide() {
             const url = document.getElementById('slide-url').value;
-            const cap = document.getElementById('slide-cap').value;
+            const caption = document.getElementById('slide-cap').value;
             if(!url) { alert("Weka URL ya picha kwanza!"); return; }
 
-            db.ref('slides').push({ url, cap }).then(() => {
-                document.getElementById('slide-url').value = "";
-                document.getElementById('slide-cap').value = "";
+            const { error } = await _supabase.from('slides').insert([{ url: url, caption: caption }]);
+            if(error) alert("Kosa la Slide: " + error.message);
+            else {
                 alert("Slide Uploaded!");
-            });
+                loadAllData();
+            }
         }
 
-        // --- DATA SYNC ---
-        window.onload = () => {
-            // Load Channels
-            db.ref('channels').on('value', snap => {
+        async function deleteItem(table, id) {
+            if(confirm("Je, una uhakika unataka kufuta?")) {
+                const { error } = await _supabase.from(table).delete().eq('id', id);
+                if(!error) loadAllData();
+                else alert("Kosa la kufuta: " + error.message);
+            }
+        }
+
+        // --- DATA LOAD ---
+        async function loadAllData() {
+            // 1. Load Channels
+            const { data: channels } = await _supabase.from('channels').select('*');
+            if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
-                let count = 0;
-                snap.forEach(c => {
-                    count++; const v = c.val();
+                channels.forEach(v => {
                     body.innerHTML += `<tr>
-                        <td><img src="${v.icon}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
-                        <td><b>${v.name}</b></td>
-                        <td style="color:var(--text-dim); font-size:11px;">${v.link.substring(0,30)}...</td>
-                        <td><button class="action-btn" onclick="db.ref('channels/${c.key}').remove()">Delete</button></td>
+                        <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
+                        <td><b>${v.channel_name}</b></td>
+                        <td style="color:var(--text-dim); font-size:11px;">${v.stream_url ? v.stream_url.substring(0,25) + '...' : 'No Link'}</td>
+                        <td><button class="action-btn" onclick="deleteItem('channels', ${v.id})">Delete</button></td>
                     </tr>`;
                 });
-                document.getElementById('stat-chan-count').innerText = count;
-            });
+                document.getElementById('stat-chan-count').innerText = channels.length;
+            }
 
-            // Load Slides
-            db.ref('slides').on('value', snap => {
-                const body = document.getElementById('slide-list-body'); body.innerHTML = "";
-                snap.forEach(c => {
-                    const v = c.val();
-                    body.innerHTML += `<tr>
-                        <td><img src="${v.url}" style="width:80px; height:45px; border-radius:5px; object-fit:cover;"></td>
-                        <td><b>${v.cap || 'No Caption'}</b></td>
-                        <td><button class="action-btn" onclick="db.ref('slides/${c.key}').remove()">Delete</button></td>
-                    </tr>`;
-                });
-            });
-
-            // Load Tokens
-            db.ref('tokens').on('value', snap => {
+            // 2. Load Tokens
+            const { data: tokens } = await _supabase.from('tokens').select('*');
+            if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
-                let count = 0;
-                snap.forEach(c => {
-                    count++; const t = c.val();
-                    const dStatus = (t.type === "Personal") ? (t.deviceId ? '<span style="color:orange">Locked</span>' : '<span style="color:var(--primary)">Available</span>') : "N/A (Public)";
+                tokens.forEach(t => {
+                    const dStatus = (t.type === "Personal") ? (t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:var(--primary)">Available</span>') : "Public";
                     body.innerHTML += `<tr>
                         <td><code style="color:var(--primary)">${t.key}</code></td>
-                        <td>${t.user}</td>
+                        <td>${t.customer_name}</td>
                         <td>${t.type}</td>
-                        <td>${t.expiry}</td>
+                        <td>${t.expiry_date}</td>
                         <td>${dStatus}</td>
-                        <td>
-                            <button class="action-btn" onclick="db.ref('tokens/${c.key}').remove()">Delete</button>
-                            ${t.deviceId ? `<button class="action-btn" style="background:#444; margin-left:5px;" onclick="db.ref('tokens/${c.key}').update({deviceId: ''})">Reset ID</button>` : ''}
-                        </td>
+                        <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>
                     </tr>`;
                 });
-                document.getElementById('stat-token-count').innerText = count;
-            });
+                document.getElementById('stat-token-count').innerText = tokens.length;
+            }
 
-            // Load Users
-            db.ref('users').on('value', snap => {
+            // 3. Load Users (Profiles)
+            const { data: profiles } = await _supabase.from('profiles').select('*');
+            if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
-                let count = 0;
-                snap.forEach(c => { count++; const u = c.val(); body.innerHTML += `<tr><td>${u.phone || 'Namba Haipo'}</td><td>Online</td><td><button class="action-btn" onclick="db.ref('users/${c.key}').remove()">Delete</button></td></tr>`; });
-                document.getElementById('stat-user-count').innerText = count;
-            });
-        };
+                profiles.forEach(u => {
+                    body.innerHTML += `<tr>
+                        <td>${u.phone || 'N/A'}</td>
+                        <td>${u.full_name || 'No Name'}</td>
+                        <td><button class="action-btn" onclick="deleteItem('profiles', ${u.id})">Delete</button></td>
+                    </tr>`;
+                });
+                document.getElementById('stat-user-count').innerText = profiles.length;
+            }
+
+            // 4. Load Slides
+            const { data: slides } = await _supabase.from('slides').select('*');
+            if(slides) {
+                const body = document.getElementById('slide-list-body'); body.innerHTML = "";
+                slides.forEach(v => {
+                    body.innerHTML += `<tr>
+                        <td><img src="${v.url}" style="width:80px; height:45px; border-radius:5px; object-fit:cover;"></td>
+                        <td><b>${v.caption || 'No Caption'}</b></td>
+                        <td><button class="action-btn" onclick="deleteItem('slides', ${v.id})">Delete</button></td>
+                    </tr>`;
+                });
+            }
+        }
+
+        window.onload = loadAllData;
     </script>
 </body>
 </html>

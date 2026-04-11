@@ -80,6 +80,11 @@
 
         .action-btn { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         .action-btn:hover { opacity: 0.8; }
+        
+        /* Status Badge */
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .status-badge.free { background: rgba(0, 230, 118, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+        .status-badge.premium { background: rgba(255, 165, 0, 0.1); color: orange; border: 1px solid orange; }
 
         @media (max-width: 768px) {
             .sidebar { width: 70px; }
@@ -121,17 +126,24 @@
                 <div class="panel-header"><h2>Add New Channel</h2></div>
                 <div class="form-grid">
                     <input type="text" id="chan-name" placeholder="Channel Name">
-                    <input type="text" id="chan-icon" placeholder="Icon URL (https://...)">
-                    <input type="text" id="chan-link" placeholder="Stream Link (M3U8)">
+                    <input type="text" id="chan-icon" placeholder="Icon URL">
+                    <input type="text" id="chan-link" placeholder="Stream Link">
+                    <select id="chan-is-free">
+                        <option value="false">Premium (Token Required)</option>
+                        <option value="true">Free (Open to All)</option>
+                    </select>
                 </div>
                 <button class="btn-save" onclick="saveChannel()">SAVE CHANNEL</button>
             </div>
             
             <div class="panel">
-                <div class="panel-header"><h2>Active Channels</h2></div>
+                <div class="panel-header">
+                    <h2>Active Channels</h2>
+                    <span style="font-size:11px; color:var(--text-dim)">Click "Type" to switch status</span>
+                </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Icon</th><th>Name</th><th>Link</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Icon</th><th>Name</th><th>Type</th><th>Link</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -183,8 +195,8 @@
             <div class="panel">
                 <div class="panel-header"><h2>Upload Auto Slide</h2></div>
                 <div class="form-grid" style="grid-template-columns: 2fr 1.5fr;">
-                    <input type="text" id="slide-url" placeholder="Slide Image URL (Direct Link)">
-                    <input type="text" id="slide-cap" placeholder="Top Caption (Maelezo ya Juu)">
+                    <input type="text" id="slide-url" placeholder="Slide Image URL">
+                    <input type="text" id="slide-cap" placeholder="Top Caption">
                 </div>
                 <button class="btn-save" onclick="saveSlide()">SAVE SLIDE</button>
             </div>
@@ -218,18 +230,17 @@
             const channel_name = document.getElementById('chan-name').value;
             const icon_url = document.getElementById('chan-icon').value;
             const stream_url = document.getElementById('chan-link').value;
+            const is_free = document.getElementById('chan-is-free').value === 'true';
+
             if(!channel_name || !stream_url) { alert("Jaza Jina na Link!"); return; }
 
             const { error } = await _supabase.from('channels').insert([{ 
-                channel_name: channel_name, 
-                icon_url: icon_url, 
-                stream_url: stream_url,
-                category: "General"
+                channel_name, icon_url, stream_url, is_free, category: "General"
             }]);
 
             if(error) alert("Kosa: " + error.message);
             else {
-                alert("Channel Imekubali!");
+                alert("Channel Imehifadhiwa!");
                 document.getElementById('chan-name').value = "";
                 document.getElementById('chan-icon').value = "";
                 document.getElementById('chan-link').value = "";
@@ -237,25 +248,25 @@
             }
         }
 
+        // --- MOD MPYA: KUBADILISHA HALI YA CHANNEL (FREE/PREMIUM) PAPO HAPO ---
+        async function toggleChannelStatus(id, currentStatus) {
+            const newStatus = !currentStatus;
+            const { error } = await _supabase.from('channels').update({ is_free: newStatus }).eq('id', id);
+            if(error) alert("Kosa kubadilisha: " + error.message);
+            else loadAllData();
+        }
+
         async function generateToken() {
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
             const days = parseInt(document.getElementById('token-days').value);
             const key = "MICK-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-            
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
-            
-            // LOGIC YA DEVICE LIMIT
             const limit = (type === 'public') ? 9999 : 1;
 
             const { error } = await _supabase.from('tokens').insert([{ 
-                key: key, 
-                type: type, 
-                customer_name: user, 
-                expiry_date: exp.toISOString(), 
-                status: "active",
-                device_limit: limit
+                key, type, customer_name: user, expiry_date: exp.toISOString(), status: "active", device_limit: limit
             }]);
 
             if(error) alert("Kosa la Token: " + error.message);
@@ -269,32 +280,31 @@
         async function saveSlide() {
             const url = document.getElementById('slide-url').value;
             const caption = document.getElementById('slide-cap').value;
-            if(!url) { alert("Weka URL ya picha kwanza!"); return; }
-
-            const { error } = await _supabase.from('slides').insert([{ url: url, caption: caption }]);
-            if(error) alert("Kosa la Slide: " + error.message);
-            else {
-                alert("Slide Uploaded!");
-                loadAllData();
-            }
+            if(!url) return alert("Weka URL ya picha!");
+            const { error } = await _supabase.from('slides').insert([{ url, caption }]);
+            if(!error) { alert("Slide Uploaded!"); loadAllData(); }
         }
 
         async function deleteItem(table, id) {
-            if(confirm("Je, una uhakika unataka kufuta?")) {
+            if(confirm("Futa kabisa?")) {
                 const { error } = await _supabase.from(table).delete().eq('id', id);
                 if(!error) loadAllData();
-                else alert("Kosa la kufuta: " + error.message);
             }
         }
 
         async function loadAllData() {
-            const { data: channels } = await _supabase.from('channels').select('*');
+            // Channels List
+            const { data: channels } = await _supabase.from('channels').select('*').order('id', {ascending: false});
             if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
                 channels.forEach(v => {
+                    const badgeClass = v.is_free ? 'free' : 'premium';
+                    const badgeText = v.is_free ? 'FREE' : 'PREMIUM';
+                    
                     body.innerHTML += `<tr>
                         <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
                         <td><b>${v.channel_name}</b></td>
+                        <td><span class="status-badge ${badgeClass}" onclick="toggleChannelStatus(${v.id}, ${v.is_free})">${badgeText}</span></td>
                         <td style="color:var(--text-dim); font-size:11px;">${v.stream_url ? v.stream_url.substring(0,25) + '...' : 'No Link'}</td>
                         <td><button class="action-btn" onclick="deleteItem('channels', ${v.id})">Delete</button></td>
                     </tr>`;
@@ -302,29 +312,18 @@
                 document.getElementById('stat-chan-count').innerText = channels.length;
             }
 
+            // Tokens List
             const { data: tokens } = await _supabase.from('tokens').select('*').order('created_at', { ascending: false });
             if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
                 tokens.forEach(t => {
-                    // Display status based on type
-                    let dStatus = "";
-                    if (t.type === "public") {
-                        dStatus = '<span style="color:var(--primary)">Unlimited</span>';
-                    } else {
-                        dStatus = t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:cyan">Available</span>';
-                    }
-                    
-                    let formattedDate = 'No Date';
-                    if(t.expiry_date) {
-                        const dateObj = new Date(t.expiry_date);
-                        formattedDate = dateObj.toLocaleDateString('en-GB') + ' ' + dateObj.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
-                    }
-
+                    let dStatus = t.type === "public" ? '<span style="color:var(--primary)">Unlimited</span>' : (t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:cyan">Available</span>');
+                    let exp = t.expiry_date ? new Date(t.expiry_date).toLocaleDateString('en-GB') : 'N/A';
                     body.innerHTML += `<tr>
                         <td><code style="color:var(--primary)">${t.key}</code></td>
                         <td>${t.customer_name || 'N/A'}</td>
                         <td style="text-transform: capitalize;">${t.type}</td>
-                        <td>${formattedDate}</td>
+                        <td>${exp}</td>
                         <td>${dStatus}</td>
                         <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>
                     </tr>`;
@@ -332,28 +331,22 @@
                 document.getElementById('stat-token-count').innerText = tokens.length;
             }
 
+            // Users List
             const { data: profiles, count } = await _supabase.from('profiles').select('*', { count: 'exact' });
             if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
                 profiles.forEach(u => {
-                    body.innerHTML += `<tr>
-                        <td>${u.phone || 'N/A'}</td>
-                        <td>${u.full_name || 'No Name'}</td>
-                        <td><button class="action-btn" onclick="deleteItem('profiles', ${u.id})">Delete</button></td>
-                    </tr>`;
+                    body.innerHTML += `<tr><td>${u.phone || 'N/A'}</td><td>${u.full_name || 'No Name'}</td><td><button class="action-btn" onclick="deleteItem('profiles', ${u.id})">Delete</button></td></tr>`;
                 });
                 document.getElementById('stat-user-count').innerText = count || profiles.length;
             }
 
+            // Slides List
             const { data: slides } = await _supabase.from('slides').select('*');
             if(slides) {
                 const body = document.getElementById('slide-list-body'); body.innerHTML = "";
                 slides.forEach(v => {
-                    body.innerHTML += `<tr>
-                        <td><img src="${v.url}" style="width:80px; height:45px; border-radius:5px; object-fit:cover;"></td>
-                        <td><b>${v.caption || 'No Caption'}</b></td>
-                        <td><button class="action-btn" onclick="deleteItem('slides', ${v.id})">Delete</button></td>
-                    </tr>`;
+                    body.innerHTML += `<tr><td><img src="${v.url}" style="width:80px; height:45px; border-radius:5px; object-fit:cover;"></td><td><b>${v.caption || 'No Caption'}</b></td><td><button class="action-btn" onclick="deleteItem('slides', ${v.id})">Delete</button></td></tr>`;
                 });
             }
         }

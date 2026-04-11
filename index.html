@@ -143,7 +143,10 @@
                 <div class="panel-header"><h2>Generate Token</h2></div>
                 <div class="form-grid">
                     <input type="text" id="token-user-select" placeholder="Customer Name">
-                    <select id="token-type"><option value="Personal">Personal (One Device)</option><option value="Public">Public (Unlimited)</option></select>
+                    <select id="token-type">
+                        <option value="private">Personal (One Device)</option>
+                        <option value="public">Public (Unlimited)</option>
+                    </select>
                     <select id="token-days">
                         <option value="3">3 Days</option>
                         <option value="7">1 Week</option>
@@ -243,17 +246,22 @@
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             
+            // LOGIC YA DEVICE LIMIT
+            const limit = (type === 'public') ? 9999 : 1;
+
             const { error } = await _supabase.from('tokens').insert([{ 
                 key: key, 
                 type: type, 
                 customer_name: user, 
                 expiry_date: exp.toISOString(), 
-                status: "active"
+                status: "active",
+                device_limit: limit
             }]);
 
             if(error) alert("Kosa la Token: " + error.message);
             else {
                 alert("Token Generated: " + key);
+                document.getElementById('token-user-select').value = "";
                 loadAllData();
             }
         }
@@ -294,13 +302,18 @@
                 document.getElementById('stat-chan-count').innerText = channels.length;
             }
 
-            const { data: tokens } = await _supabase.from('tokens').select('*');
+            const { data: tokens } = await _supabase.from('tokens').select('*').order('created_at', { ascending: false });
             if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
                 tokens.forEach(t => {
-                    const dStatus = (t.type === "Personal") ? (t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:var(--primary)">Available</span>') : "Public";
+                    // Display status based on type
+                    let dStatus = "";
+                    if (t.type === "public") {
+                        dStatus = '<span style="color:var(--primary)">Unlimited</span>';
+                    } else {
+                        dStatus = t.device_id ? '<span style="color:orange">Locked</span>' : '<span style="color:cyan">Available</span>';
+                    }
                     
-                    // MAREKEBISHO YA MUDA HAPA:
                     let formattedDate = 'No Date';
                     if(t.expiry_date) {
                         const dateObj = new Date(t.expiry_date);
@@ -310,7 +323,7 @@
                     body.innerHTML += `<tr>
                         <td><code style="color:var(--primary)">${t.key}</code></td>
                         <td>${t.customer_name || 'N/A'}</td>
-                        <td>${t.type}</td>
+                        <td style="text-transform: capitalize;">${t.type}</td>
                         <td>${formattedDate}</td>
                         <td>${dStatus}</td>
                         <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>

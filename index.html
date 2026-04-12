@@ -127,10 +127,14 @@
                     <input type="text" id="chan-name" placeholder="Channel Name">
                     <input type="text" id="chan-icon" placeholder="Icon URL">
                     <input type="text" id="chan-link" placeholder="Stream Link">
-                    <select id="chan-is-free">
+                    <select id="chan-is-free" onchange="toggleDRMInputs()">
                         <option value="false">Premium (Token Required)</option>
                         <option value="true">Free (Open to All)</option>
                     </select>
+                </div>
+                <div id="drm-inputs" class="form-grid">
+                    <input type="text" id="chan-kid" placeholder="Key ID (KID)">
+                    <input type="text" id="chan-key" placeholder="Key Content (KEY)">
                 </div>
                 <button class="btn-save" onclick="saveChannel()">SAVE CHANNEL</button>
             </div>
@@ -142,7 +146,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Icon</th><th>Name</th><th>Type</th><th>Link</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Icon</th><th>Name</th><th>Type</th><th>DRM Info</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -216,6 +220,11 @@
         const SUPABASE_KEY = 'sb_publishable_BJXwjHQLipzLDk3vgki8TQ_3PiiOjl2'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        function toggleDRMInputs() {
+            const isFree = document.getElementById('chan-is-free').value === 'true';
+            document.getElementById('drm-inputs').classList.toggle('hidden', isFree);
+        }
+
         function showTab(id, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -230,11 +239,13 @@
             const icon_url = document.getElementById('chan-icon').value;
             const stream_url = document.getElementById('chan-link').value;
             const is_free = document.getElementById('chan-is-free').value === 'true';
+            const kid = document.getElementById('chan-kid').value;
+            const key_content = document.getElementById('chan-key').value;
 
             if(!channel_name || !stream_url) { alert("Please enter Name and Stream Link!"); return; }
 
             const { error } = await _supabase.from('channels').insert([{ 
-                channel_name, icon_url, stream_url, is_free, category: "General"
+                channel_name, icon_url, stream_url, is_free, kid: kid, key: key_content, category: "General"
             }]);
 
             if(error) alert("Error: " + error.message);
@@ -243,6 +254,8 @@
                 document.getElementById('chan-name').value = "";
                 document.getElementById('chan-icon').value = "";
                 document.getElementById('chan-link').value = "";
+                document.getElementById('chan-kid').value = "";
+                document.getElementById('chan-key').value = "";
                 loadAllData();
             }
         }
@@ -258,10 +271,7 @@
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
             const days = parseInt(document.getElementById('token-days').value);
-            
-            // PURE NUMERIC TOKEN (8 DIGITS)
             const key = Math.floor(10000000 + Math.random() * 90000000).toString();
-            
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             const limit = (type === 'public') ? 9999 : 1;
@@ -300,12 +310,13 @@
                 channels.forEach(v => {
                     const badgeClass = v.is_free ? 'free' : 'premium';
                     const badgeText = v.is_free ? 'FREE' : 'PREMIUM';
+                    const drmStatus = v.is_free ? '<span style="color:var(--text-dim)">None</span>' : (v.kid ? '<span style="color:var(--primary)">✅ Keys Ready</span>' : '<span style="color:var(--danger)">❌ Missing Keys</span>');
                     
                     body.innerHTML += `<tr>
                         <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
                         <td><b>${v.channel_name}</b></td>
                         <td><span class="status-badge ${badgeClass}" onclick="toggleChannelStatus(${v.id}, ${v.is_free})">${badgeText}</span></td>
-                        <td style="color:var(--text-dim); font-size:11px;">${v.stream_url ? v.stream_url.substring(0,25) + '...' : 'No Link'}</td>
+                        <td>${drmStatus}</td>
                         <td><button class="action-btn" onclick="deleteItem('channels', ${v.id})">Delete</button></td>
                     </tr>`;
                 });
@@ -352,3 +363,4 @@
     </script>
 </body>
 </html>
+

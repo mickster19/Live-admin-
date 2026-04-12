@@ -121,11 +121,13 @@
 
         <div id="tab-channels" class="tab-content hidden">
             <div class="panel">
-                <div class="panel-header"><h2>Add New Channel</h2></div>
+                <div class="panel-header"><h2 id="form-action-title">Add New Channel</h2></div>
+                <input type="hidden" id="edit-chan-id">
                 <div class="form-grid">
                     <input type="text" id="chan-name" placeholder="Channel Name">
                     <input type="text" id="chan-icon" placeholder="Icon URL">
                     <input type="text" id="chan-link" placeholder="Stream Link (.m3u8 / .mpd)">
+                    <input type="text" id="chan-category" placeholder="Category (e.g Sports)">
                     
                     <select id="chan-type" onchange="toggleDRMInputs()">
                         <option value="hls">HLS (.m3u8)</option>
@@ -143,7 +145,10 @@
                     <input type="text" id="chan-key" placeholder="ClearKey KEY">
                 </div>
 
-                <button class="btn-save" onclick="saveChannel()">SAVE CHANNEL</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-save" id="btn-save-chan" onclick="saveChannel()">SAVE CHANNEL</button>
+                    <button class="btn-save hidden" id="btn-cancel-edit" onclick="cancelEdit()" style="background:#444; color:white;">CANCEL</button>
+                </div>
             </div>
             
             <div class="panel">
@@ -152,7 +157,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Icon</th><th>Name</th><th>Format</th><th>Type</th><th>DRM Info</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Format</th><th>Type</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -248,33 +253,68 @@
             loadAllData();
         }
 
+        // --- EDIT CHANNEL LOGIC ---
+        function startEditChannel(id, name, icon, link, type, isFree, kid, key, category) {
+            document.getElementById('edit-chan-id').value = id;
+            document.getElementById('chan-name').value = name;
+            document.getElementById('chan-icon').value = icon;
+            document.getElementById('chan-link').value = link;
+            document.getElementById('chan-type').value = type;
+            document.getElementById('chan-is-free').value = isFree.toString();
+            document.getElementById('chan-category').value = category || "General";
+            
+            if(type === 'dash') {
+                document.getElementById('drm-inputs').classList.remove('hidden');
+                document.getElementById('chan-kid').value = kid || "";
+                document.getElementById('chan-key').value = key || "";
+            } else {
+                document.getElementById('drm-inputs').classList.add('hidden');
+            }
+
+            document.getElementById('form-action-title').innerText = "Edit Channel: " + name;
+            document.getElementById('btn-save-chan').innerText = "UPDATE CHANNEL";
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function cancelEdit() {
+            document.getElementById('edit-chan-id').value = "";
+            ['chan-name', 'chan-icon', 'chan-link', 'chan-kid', 'chan-key', 'chan-category'].forEach(id => document.getElementById(id).value = "");
+            document.getElementById('form-action-title').innerText = "Add New Channel";
+            document.getElementById('btn-save-chan').innerText = "SAVE CHANNEL";
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
         // --- CRUD CHANNELS ---
         async function saveChannel() {
+            const editId = document.getElementById('edit-chan-id').value;
             const channel_name = document.getElementById('chan-name').value;
             const icon_url = document.getElementById('chan-icon').value;
             const stream_url = document.getElementById('chan-link').value;
             const stream_type = document.getElementById('chan-type').value;
+            const category = document.getElementById('chan-category').value || "General";
             const is_free = document.getElementById('chan-is-free').value === 'true';
             const kid = document.getElementById('chan-kid').value;
             const key_content = document.getElementById('chan-key').value;
 
             if(!channel_name || !stream_url) { alert("Please enter Name and Stream Link!"); return; }
 
-            const { error } = await _supabase.from('channels').insert([{ 
-                channel_name, 
-                icon_url, 
-                stream_url, 
-                stream_type, 
-                is_free, 
-                kid: kid || null, 
-                key: key_content || null, 
-                category: "General"
-            }]);
+            const channelData = { 
+                channel_name, icon_url, stream_url, stream_type, is_free, category,
+                kid: kid || null, key: key_content || null
+            };
 
-            if(error) alert("Error: " + error.message);
+            let res;
+            if(editId) {
+                res = await _supabase.from('channels').update(channelData).eq('id', editId);
+            } else {
+                res = await _supabase.from('channels').insert([channelData]);
+            }
+
+            if(res.error) alert("Error: " + res.error.message);
             else {
-                alert("Channel saved successfully!");
-                ['chan-name', 'chan-icon', 'chan-link', 'chan-kid', 'chan-key'].forEach(id => document.getElementById(id).value = "");
+                alert(editId ? "Channel updated successfully!" : "Channel saved successfully!");
+                cancelEdit();
                 loadAllData();
             }
         }
@@ -326,16 +366,18 @@
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
                 channels.forEach(v => {
                     const badgeClass = v.is_free ? 'free' : 'premium';
-                    const formatLabel = v.stream_type === 'dash' ? '<span style="color:#00E676">DASH</span>' : '<span style="color:#2196F3">HLS</span>';
-                    const drmStatus = v.stream_type === 'dash' && v.kid ? '✅ Keys Ready' : (v.stream_type === 'dash' ? '❌ No Keys' : 'None');
+                    const formatLabel = v.stream_type === 'dash' ? '<span style="color:#00E676; font-weight:bold;">DASH</span>' : '<span style="color:#2196F3; font-weight:bold;">HLS</span>';
                     
                     body.innerHTML += `<tr>
                         <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
                         <td><b>${v.channel_name}</b></td>
+                        <td><small>${v.category || 'General'}</small></td>
                         <td>${formatLabel}</td>
                         <td><span class="status-badge ${badgeClass}" onclick="toggleChannelStatus(${v.id}, ${v.is_free})">${v.is_free ? 'FREE' : 'PREMIUM'}</span></td>
-                        <td style="font-size:11px; color:var(--text-dim)">${drmStatus}</td>
-                        <td><button class="action-btn" onclick="deleteItem('channels', ${v.id})">Delete</button></td>
+                        <td>
+                            <button class="action-btn" style="background:#2196F3; margin-right:5px;" onclick='startEditChannel(${v.id}, "${v.channel_name}", "${v.icon_url}", "${v.stream_url}", "${v.stream_type}", ${v.is_free}, "${v.kid || ''}", "${v.key || ''}", "${v.category}")'>Edit</button>
+                            <button class="action-btn" onclick="deleteItem('channels', ${v.id})">Del</button>
+                        </td>
                     </tr>`;
                 });
                 document.getElementById('stat-chan-count').innerText = channels.length;

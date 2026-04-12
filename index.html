@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sw">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +81,6 @@
         .action-btn { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         .action-btn:hover { opacity: 0.8; }
         
-        /* Status Badge */
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
         .status-badge.free { background: rgba(0, 230, 118, 0.1); color: var(--primary); border: 1px solid var(--primary); }
         .status-badge.premium { background: rgba(255, 165, 0, 0.1); color: orange; border: 1px solid orange; }
@@ -99,7 +98,7 @@
     <div class="sidebar">
         <div class="sidebar-header"><h2>M-TV PRO</h2></div>
         <div class="nav-links">
-            <div class="nav-item active" onclick="showTab('dash', this)"><i class="fa-solid fa-house"></i> <span>Dashboard</span></div>
+            <div class="nav-item active" onclick="showTab('dashboard', this)"><i class="fa-solid fa-house"></i> <span>Dashboard</span></div>
             <div class="nav-item" onclick="showTab('tokens', this)"><i class="fa-solid fa-key"></i> <span>Tokens</span></div>
             <div class="nav-item" onclick="showTab('users', this)"><i class="fa-solid fa-users"></i> <span>Users</span></div>
             <div class="nav-item" onclick="showTab('channels', this)"><i class="fa-solid fa-tv"></i> <span>Channels</span></div>
@@ -110,10 +109,10 @@
     <div class="main-content">
         <header>
             <h1 id="tab-title">Dashboard Overview</h1>
-            <div style="color: var(--text-dim); font-size: 14px;"><i class="fa-solid fa-circle" style="color:var(--primary); font-size:10px;"></i> Supabase Live</div>
+            <div style="color: var(--text-dim); font-size: 14px;"><i class="fa-solid fa-circle" style="color:var(--primary); font-size:10px;"></i> Mickster Developer</div>
         </header>
 
-        <div id="tab-dash" class="tab-content">
+        <div id="tab-dashboard" class="tab-content">
             <div class="stats-container">
                 <div class="stat-box"><i class="fa-solid fa-tv"></i><span>Total Channels</span><h3 id="stat-chan-count">0</h3></div>
                 <div class="stat-box"><i class="fa-solid fa-ticket"></i><span>Active Tokens</span><h3 id="stat-token-count">0</h3></div>
@@ -166,7 +165,7 @@
                         <option value="30">1 Month</option>
                     </select>
                 </div>
-                <button class="btn-save" onclick="generateToken()">GENERATE</button>
+                <button class="btn-save" onclick="generateToken()">GENERATE TOKEN</button>
             </div>
             <div class="panel">
                 <div class="panel-header"><h2>Manage Tokens</h2></div>
@@ -232,15 +231,15 @@
             const stream_url = document.getElementById('chan-link').value;
             const is_free = document.getElementById('chan-is-free').value === 'true';
 
-            if(!channel_name || !stream_url) { alert("Jaza Jina na Link!"); return; }
+            if(!channel_name || !stream_url) { alert("Please enter Name and Stream Link!"); return; }
 
             const { error } = await _supabase.from('channels').insert([{ 
                 channel_name, icon_url, stream_url, is_free, category: "General"
             }]);
 
-            if(error) alert("Kosa: " + error.message);
+            if(error) alert("Error: " + error.message);
             else {
-                alert("Channel Imehifadhiwa!");
+                alert("Channel saved successfully!");
                 document.getElementById('chan-name').value = "";
                 document.getElementById('chan-icon').value = "";
                 document.getElementById('chan-link').value = "";
@@ -248,11 +247,10 @@
             }
         }
 
-        // --- MOD MPYA: KUBADILISHA HALI YA CHANNEL (FREE/PREMIUM) PAPO HAPO ---
         async function toggleChannelStatus(id, currentStatus) {
             const newStatus = !currentStatus;
             const { error } = await _supabase.from('channels').update({ is_free: newStatus }).eq('id', id);
-            if(error) alert("Kosa kubadilisha: " + error.message);
+            if(error) alert("Update failed: " + error.message);
             else loadAllData();
         }
 
@@ -260,7 +258,10 @@
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
             const days = parseInt(document.getElementById('token-days').value);
-            const key = "MICK-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+            
+            // PURE NUMERIC TOKEN (8 DIGITS)
+            const key = Math.floor(10000000 + Math.random() * 90000000).toString();
+            
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             const limit = (type === 'public') ? 9999 : 1;
@@ -269,7 +270,7 @@
                 key, type, customer_name: user, expiry_date: exp.toISOString(), status: "active", device_limit: limit
             }]);
 
-            if(error) alert("Kosa la Token: " + error.message);
+            if(error) alert("Token Error: " + error.message);
             else {
                 alert("Token Generated: " + key);
                 document.getElementById('token-user-select').value = "";
@@ -280,20 +281,19 @@
         async function saveSlide() {
             const url = document.getElementById('slide-url').value;
             const caption = document.getElementById('slide-cap').value;
-            if(!url) return alert("Weka URL ya picha!");
+            if(!url) return alert("Please enter image URL!");
             const { error } = await _supabase.from('slides').insert([{ url, caption }]);
             if(!error) { alert("Slide Uploaded!"); loadAllData(); }
         }
 
         async function deleteItem(table, id) {
-            if(confirm("Futa kabisa?")) {
+            if(confirm("Are you sure you want to delete this?")) {
                 const { error } = await _supabase.from(table).delete().eq('id', id);
                 if(!error) loadAllData();
             }
         }
 
         async function loadAllData() {
-            // Channels List
             const { data: channels } = await _supabase.from('channels').select('*').order('id', {ascending: false});
             if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
@@ -312,7 +312,6 @@
                 document.getElementById('stat-chan-count').innerText = channels.length;
             }
 
-            // Tokens List
             const { data: tokens } = await _supabase.from('tokens').select('*').order('created_at', { ascending: false });
             if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
@@ -331,7 +330,6 @@
                 document.getElementById('stat-token-count').innerText = tokens.length;
             }
 
-            // Users List
             const { data: profiles, count } = await _supabase.from('profiles').select('*', { count: 'exact' });
             if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
@@ -341,7 +339,6 @@
                 document.getElementById('stat-user-count').innerText = count || profiles.length;
             }
 
-            // Slides List
             const { data: slides } = await _supabase.from('slides').select('*');
             if(slides) {
                 const body = document.getElementById('slide-list-body'); body.innerHTML = "";

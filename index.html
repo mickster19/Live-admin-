@@ -126,23 +126,18 @@
                 <div class="form-grid">
                     <input type="text" id="chan-name" placeholder="Channel Name">
                     <input type="text" id="chan-icon" placeholder="Icon URL">
-                    <input type="text" id="chan-link" placeholder="Stream Link (.m3u8 / .mpd)">
-                    <input type="text" id="chan-category" placeholder="Category (e.g Sports)">
+                    <input type="text" id="chan-link" placeholder="App Link (e.g go:name)">
                     
-                    <select id="chan-type" onchange="toggleDRMInputs()">
-                        <option value="hls">HLS (.m3u8)</option>
-                        <option value="dash">MPEG-DASH (.mpd)</option>
+                    <select id="chan-category">
+                        <option value="Sports">Sports</option>
+                        <option value="Movies">Movies</option>
+                        <option value="Other">Other</option>
                     </select>
 
                     <select id="chan-is-free">
                         <option value="false">Premium (Token Required)</option>
                         <option value="true">Free (Open to All)</option>
                     </select>
-                </div>
-
-                <div id="drm-inputs" class="form-grid hidden" style="border-top: 1px dashed #333; padding-top: 15px;">
-                    <input type="text" id="chan-kid" placeholder="ClearKey KID">
-                    <input type="text" id="chan-key" placeholder="ClearKey KEY">
                 </div>
 
                 <div style="display:flex; gap:10px;">
@@ -157,7 +152,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Format</th><th>Type</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -231,19 +226,6 @@
         const SUPABASE_KEY = 'sb_publishable_BJXwjHQLipzLDk3vgki8TQ_3PiiOjl2'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- UI FUNCTIONS ---
-        function toggleDRMInputs() {
-            const type = document.getElementById('chan-type').value;
-            const drmDiv = document.getElementById('drm-inputs');
-            if(type === 'dash') {
-                drmDiv.classList.remove('hidden');
-            } else {
-                drmDiv.classList.add('hidden');
-                document.getElementById('chan-kid').value = "";
-                document.getElementById('chan-key').value = "";
-            }
-        }
-
         function showTab(id, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -253,24 +235,15 @@
             loadAllData();
         }
 
-        // --- EDIT CHANNEL LOGIC ---
-        function startEditChannel(id, name, icon, link, type, isFree, kid, key, category) {
+        // --- EDIT CHANNEL ---
+        function startEditChannel(id, name, icon, link, isFree, category) {
             document.getElementById('edit-chan-id').value = id;
             document.getElementById('chan-name').value = name;
             document.getElementById('chan-icon').value = icon;
             document.getElementById('chan-link').value = link;
-            document.getElementById('chan-type').value = type;
             document.getElementById('chan-is-free').value = isFree.toString();
-            document.getElementById('chan-category').value = category || "General";
+            document.getElementById('chan-category').value = category;
             
-            if(type === 'dash') {
-                document.getElementById('drm-inputs').classList.remove('hidden');
-                document.getElementById('chan-kid').value = kid || "";
-                document.getElementById('chan-key').value = key || "";
-            } else {
-                document.getElementById('drm-inputs').classList.add('hidden');
-            }
-
             document.getElementById('form-action-title').innerText = "Edit Channel: " + name;
             document.getElementById('btn-save-chan').innerText = "UPDATE CHANNEL";
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
@@ -279,7 +252,7 @@
 
         function cancelEdit() {
             document.getElementById('edit-chan-id').value = "";
-            ['chan-name', 'chan-icon', 'chan-link', 'chan-kid', 'chan-key', 'chan-category'].forEach(id => document.getElementById(id).value = "");
+            ['chan-name', 'chan-icon', 'chan-link'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('form-action-title').innerText = "Add New Channel";
             document.getElementById('btn-save-chan').innerText = "SAVE CHANNEL";
             document.getElementById('btn-cancel-edit').classList.add('hidden');
@@ -291,17 +264,16 @@
             const channel_name = document.getElementById('chan-name').value;
             const icon_url = document.getElementById('chan-icon').value;
             const stream_url = document.getElementById('chan-link').value;
-            const stream_type = document.getElementById('chan-type').value;
-            const category = document.getElementById('chan-category').value || "General";
+            const category = document.getElementById('chan-category').value;
             const is_free = document.getElementById('chan-is-free').value === 'true';
-            const kid = document.getElementById('chan-kid').value;
-            const key_content = document.getElementById('chan-key').value;
 
-            if(!channel_name || !stream_url) { alert("Please enter Name and Stream Link!"); return; }
+            if(!channel_name || !stream_url) { alert("Ingiza Jina na Link!"); return; }
 
             const channelData = { 
-                channel_name, icon_url, stream_url, stream_type, is_free, category,
-                kid: kid || null, key: key_content || null
+                channel_name, icon_url, stream_url, 
+                stream_type: 'app', // Forced as App Section
+                is_free, category,
+                kid: null, key: null
             };
 
             let res;
@@ -313,7 +285,7 @@
 
             if(res.error) alert("Error: " + res.error.message);
             else {
-                alert(editId ? "Channel updated successfully!" : "Channel saved successfully!");
+                alert(editId ? "Channel imesasishwa!" : "Channel imehifadhiwa!");
                 cancelEdit();
                 loadAllData();
             }
@@ -350,9 +322,8 @@
             if(!error) { alert("Slide Uploaded!"); loadAllData(); }
         }
 
-        // --- GLOBAL DELETE ---
         async function deleteItem(table, id) {
-            if(confirm("Are you sure you want to delete this?")) {
+            if(confirm("Are you sure?")) {
                 const { error } = await _supabase.from(table).delete().eq('id', id);
                 if(!error) loadAllData();
             }
@@ -360,22 +331,19 @@
 
         // --- LOAD DATA ---
         async function loadAllData() {
-            // Channels
             const { data: channels } = await _supabase.from('channels').select('*').order('id', {ascending: false});
             if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
                 channels.forEach(v => {
                     const badgeClass = v.is_free ? 'free' : 'premium';
-                    const formatLabel = v.stream_type === 'dash' ? '<span style="color:#00E676; font-weight:bold;">DASH</span>' : '<span style="color:#2196F3; font-weight:bold;">HLS</span>';
                     
                     body.innerHTML += `<tr>
                         <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
                         <td><b>${v.channel_name}</b></td>
-                        <td><small>${v.category || 'General'}</small></td>
-                        <td>${formatLabel}</td>
+                        <td><small>${v.category}</small></td>
                         <td><span class="status-badge ${badgeClass}" onclick="toggleChannelStatus(${v.id}, ${v.is_free})">${v.is_free ? 'FREE' : 'PREMIUM'}</span></td>
                         <td>
-                            <button class="action-btn" style="background:#2196F3; margin-right:5px;" onclick='startEditChannel(${v.id}, "${v.channel_name}", "${v.icon_url}", "${v.stream_url}", "${v.stream_type}", ${v.is_free}, "${v.kid || ''}", "${v.key || ''}", "${v.category}")'>Edit</button>
+                            <button class="action-btn" style="background:#2196F3; margin-right:5px;" onclick='startEditChannel(${v.id}, "${v.channel_name}", "${v.icon_url}", "${v.stream_url}", ${v.is_free}, "${v.category}")'>Edit</button>
                             <button class="action-btn" onclick="deleteItem('channels', ${v.id})">Del</button>
                         </td>
                     </tr>`;
@@ -383,25 +351,16 @@
                 document.getElementById('stat-chan-count').innerText = channels.length;
             }
 
-            // Tokens
             const { data: tokens } = await _supabase.from('tokens').select('*').order('created_at', { ascending: false });
             if(tokens) {
                 const body = document.getElementById('token-list-body'); body.innerHTML = "";
                 tokens.forEach(t => {
                     let dStatus = t.type === "public" ? 'Unlimited' : (t.device_id ? 'Locked' : 'Available');
-                    body.innerHTML += `<tr>
-                        <td><code>${t.key}</code></td>
-                        <td>${t.customer_name || 'N/A'}</td>
-                        <td>${t.type}</td>
-                        <td>${new Date(t.expiry_date).toLocaleDateString()}</td>
-                        <td>${dStatus}</td>
-                        <td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td>
-                    </tr>`;
+                    body.innerHTML += `<tr><td><code>${t.key}</code></td><td>${t.customer_name}</td><td>${t.type}</td><td>${new Date(t.expiry_date).toLocaleDateString()}</td><td>${dStatus}</td><td><button class="action-btn" onclick="deleteItem('tokens', ${t.id})">Delete</button></td></tr>`;
                 });
                 document.getElementById('stat-token-count').innerText = tokens.length;
             }
 
-            // Profiles
             const { data: profiles } = await _supabase.from('profiles').select('*');
             if(profiles) {
                 const body = document.getElementById('user-list-body'); body.innerHTML = "";
@@ -411,7 +370,6 @@
                 document.getElementById('stat-user-count').innerText = profiles.length;
             }
 
-            // Slides
             const { data: slides } = await _supabase.from('slides').select('*');
             if(slides) {
                 const body = document.getElementById('slide-list-body'); body.innerHTML = "";

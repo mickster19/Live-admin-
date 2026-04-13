@@ -126,7 +126,7 @@
                 <div class="form-grid">
                     <input type="text" id="chan-name" placeholder="Channel Name">
                     <input type="text" id="chan-icon" placeholder="Icon URL">
-                    <input type="text" id="chan-link" placeholder="App Link (e.g go:name)">
+                    <input type="text" id="chan-link" placeholder="App Section (e.g sport_hd)">
                     
                     <select id="chan-category">
                         <option value="Sports">Sports</option>
@@ -152,7 +152,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Icon</th><th>Name</th><th>Goname</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="channel-list-body"></tbody>
                     </table>
                 </div>
@@ -235,12 +235,13 @@
             loadAllData();
         }
 
-        // --- EDIT CHANNEL ---
+        // --- EDIT CHANNEL LOGIC ---
         function startEditChannel(id, name, icon, link, isFree, category) {
             document.getElementById('edit-chan-id').value = id;
             document.getElementById('chan-name').value = name;
             document.getElementById('chan-icon').value = icon;
-            document.getElementById('chan-link').value = link;
+            // Ondoa 'go:' wakati wa kuedit ili ionekane safi
+            document.getElementById('chan-link').value = link.replace('go:', '');
             document.getElementById('chan-is-free').value = isFree.toString();
             document.getElementById('chan-category').value = category;
             
@@ -258,20 +259,24 @@
             document.getElementById('btn-cancel-edit').classList.add('hidden');
         }
 
-        // --- CRUD CHANNELS ---
+        // --- SAVE CHANNEL LOGIC ---
         async function saveChannel() {
             const editId = document.getElementById('edit-chan-id').value;
             const channel_name = document.getElementById('chan-name').value;
             const icon_url = document.getElementById('chan-icon').value;
-            const stream_url = document.getElementById('chan-link').value;
+            let section_input = document.getElementById('chan-link').value.trim();
             const category = document.getElementById('chan-category').value;
             const is_free = document.getElementById('chan-is-free').value === 'true';
 
-            if(!channel_name || !stream_url) { alert("Ingiza Jina na Link!"); return; }
+            if(!channel_name || !section_input) { alert("Ingiza Jina na Section!"); return; }
+
+            // Logic ya kuhakikisha inasave kama goname (mfumo wa go:name)
+            let final_link = section_input.startsWith('go:') ? section_input : 'go:' + section_input;
 
             const channelData = { 
-                channel_name, icon_url, stream_url, 
-                stream_type: 'app', // Forced as App Section
+                channel_name, icon_url, 
+                stream_url: final_link, 
+                stream_type: 'app', 
                 is_free, category,
                 kid: null, key: null
             };
@@ -296,7 +301,7 @@
             if(!error) loadAllData();
         }
 
-        // --- CRUD TOKENS ---
+        // --- TOKEN & SLIDE LOGIC (Bila mabadiliko) ---
         async function generateToken() {
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
@@ -305,15 +310,10 @@
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             const limit = (type === 'public') ? 9999 : 1;
-
-            const { error } = await _supabase.from('tokens').insert([{ 
-                key, type, customer_name: user, expiry_date: exp.toISOString(), status: "active", device_limit: limit
-            }]);
-
+            const { error } = await _supabase.from('tokens').insert([{ key, type, customer_name: user, expiry_date: exp.toISOString(), status: "active", device_limit: limit }]);
             if(!error) { alert("Token Generated: " + key); loadAllData(); }
         }
 
-        // --- CRUD SLIDES ---
         async function saveSlide() {
             const url = document.getElementById('slide-url').value;
             const caption = document.getElementById('slide-cap').value;
@@ -329,18 +329,16 @@
             }
         }
 
-        // --- LOAD DATA ---
         async function loadAllData() {
             const { data: channels } = await _supabase.from('channels').select('*').order('id', {ascending: false});
             if(channels) {
                 const body = document.getElementById('channel-list-body'); body.innerHTML = "";
                 channels.forEach(v => {
                     const badgeClass = v.is_free ? 'free' : 'premium';
-                    
                     body.innerHTML += `<tr>
                         <td><img src="${v.icon_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:5px; object-fit:cover;"></td>
                         <td><b>${v.channel_name}</b></td>
-                        <td><small>${v.category}</small></td>
+                        <td><code>${v.stream_url}</code></td>
                         <td><span class="status-badge ${badgeClass}" onclick="toggleChannelStatus(${v.id}, ${v.is_free})">${v.is_free ? 'FREE' : 'PREMIUM'}</span></td>
                         <td>
                             <button class="action-btn" style="background:#2196F3; margin-right:5px;" onclick='startEditChannel(${v.id}, "${v.channel_name}", "${v.icon_url}", "${v.stream_url}", ${v.is_free}, "${v.category}")'>Edit</button>

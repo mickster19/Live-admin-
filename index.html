@@ -288,7 +288,7 @@
             loadAllData();
         }
 
-        // --- MABORESHO: GENERATE TOKEN NA PRICE ---
+        // --- MABORESHO: GENERATE TOKEN (NUMBERS ONLY) ---
         async function generateToken() {
             const user = document.getElementById('token-user-select').value || "Guest";
             const type = document.getElementById('token-type').value;
@@ -300,7 +300,9 @@
                 amount = parseInt(priceInput) || 0;
             }
 
-            const key = "MICK-" + Math.floor(100000 + Math.random() * 900000).toString();
+            // HAPA NDIPO MABADILIKO YALIPO: Inatengeneza namba tupu ya tarakimu 6
+            const key = Math.floor(100000 + Math.random() * 900000).toString();
+            
             const exp = new Date(); 
             exp.setDate(exp.getDate() + days);
             const limit = (type === 'public') ? 9999 : 1;
